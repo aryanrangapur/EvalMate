@@ -352,19 +352,6 @@ export default function TaskDetailPage() {
           {task.evaluation_status === 'completed' && evaluation && (
             <div className="space-y-6">
               {/* Premium Badge */}
-              {isPremium && (
-                <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-center">
-                      <div className="flex items-center bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full">
-                        <Star className="h-4 w-4 mr-2 fill-current" />
-                        <span className="font-semibold">PREMIUM EVALUATION</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Score Card */}
               <Card>
                 <CardHeader>
@@ -403,12 +390,8 @@ export default function TaskDetailPage() {
                       : JSON.stringify(evaluation.feedback, null, 2)}
                   </p>
                   {isPremium && (
-                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                      <h4 className="font-semibold text-blue-900 mb-2">💡 Premium Insights</h4>
-                      <p className="text-blue-800 text-sm">
-                        This evaluation considers industry best practices, code maintainability, performance implications,
-                        and scalability concerns that go beyond basic syntax checking.
-                      </p>
+                    <div className="mt-4 text-sm text-gray-600 italic">
+                      This evaluation includes industry best practices, code maintainability, performance implications, and scalability analysis.
                     </div>
                   )}
                 </CardContent>
@@ -532,19 +515,19 @@ export default function TaskDetailPage() {
                           {/* Code Quality Metrics */}
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-white p-4 rounded-lg border border-purple-200">
-                              <h4 className="font-semibold text-purple-900 mb-2">🏗️ Architecture</h4>
+                              <h4 className="font-semibold text-purple-900 mb-2">Architecture</h4>
                               <p className="text-sm text-purple-700 whitespace-pre-wrap">
                                 {insights.architecture || 'Analysis not available'}
                               </p>
                             </div>
                             <div className="bg-white p-4 rounded-lg border border-purple-200">
-                              <h4 className="font-semibold text-purple-900 mb-2">⚡ Performance</h4>
+                              <h4 className="font-semibold text-purple-900 mb-2">Performance</h4>
                               <p className="text-sm text-purple-700 whitespace-pre-wrap">
                                 {insights.performance || 'Analysis not available'}
                               </p>
                             </div>
                             <div className="bg-white p-4 rounded-lg border border-purple-200">
-                              <h4 className="font-semibold text-purple-900 mb-2">🛡️ Security</h4>
+                              <h4 className="font-semibold text-purple-900 mb-2">Security</h4>
                               <p className="text-sm text-purple-700 whitespace-pre-wrap">
                                 {insights.security || 'Analysis not available'}
                               </p>
@@ -554,7 +537,7 @@ export default function TaskDetailPage() {
                           {/* Industry Benchmarks */}
                           <div className="bg-white p-6 rounded-lg border border-purple-200">
                             <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
-                              📊 Industry Benchmarks Comparison
+                              Industry Benchmarks Comparison
                             </h4>
                             <div className="space-y-3">
                               <div className="flex justify-between items-center">
@@ -600,7 +583,7 @@ export default function TaskDetailPage() {
                           {insights.expertRecommendations && (
                             <div className="bg-white p-6 rounded-lg border border-purple-200">
                               <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
-                                👨‍💻 Expert Recommendations
+                                Expert Recommendations
                               </h4>
                               <div className="space-y-4">
                                 {insights.expertRecommendations.immediate && insights.expertRecommendations.immediate.length > 0 && (
@@ -631,7 +614,7 @@ export default function TaskDetailPage() {
                           {insights.learningPath && (
                             <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-6 rounded-lg border border-purple-300">
                               <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
-                                🎓 Personalized Learning Path
+                                Personalized Learning Path
                               </h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {insights.learningPath.nextSkills && insights.learningPath.nextSkills.length > 0 && (
@@ -662,7 +645,7 @@ export default function TaskDetailPage() {
                           {insights.correctedCode && (
                             <div className="bg-white p-6 rounded-lg border border-purple-200">
                               <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
-                                💻 Corrected Code (Production-Ready)
+                                Corrected Code (Production-Ready)
                               </h4>
                               <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
                                 <pre className="text-sm whitespace-pre-wrap font-mono">
@@ -719,7 +702,7 @@ export default function TaskDetailPage() {
                       </div>
                     </div>
                     <div className="mt-3 text-xs text-yellow-700">
-                      💡 Already paid? Click "Check Status" to refresh your report access.
+                      Already paid? Click "Check Status" to refresh your report access.
                     </div>
                   </CardContent>
                 </Card>

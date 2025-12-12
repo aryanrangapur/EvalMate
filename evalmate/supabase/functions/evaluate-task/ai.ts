@@ -404,8 +404,8 @@ Based on the actual code quality, provide a comprehensive premium analysis in th
   "performance": "<analysis of performance implications, time/space complexity, optimizations needed>",
   "security": "<security analysis including input validation, potential vulnerabilities, best practices>",
   "codeQuality": <number 0-100 based on ACTUAL code quality - be STRICT. If code is minimal/bad, score should be LOW>,
-  "industryAverage": 72,
-  "topPerformers": 95,
+  "industryAverage": <number 0-100 representing typical code quality in the industry for similar tasks - usually 65-75>,
+  "topPerformers": <number 0-100 representing code quality of top 10% developers for similar tasks - usually 85-95>,
   "expertRecommendations": {
     "immediate": [<array of specific immediate improvements needed>],
     "future": [<array of future enhancements to consider>]
@@ -417,9 +417,22 @@ Based on the actual code quality, provide a comprehensive premium analysis in th
   "correctedCode": "<Provide a FULL, COMPLETE, PRODUCTION-READY corrected version of the code that addresses ALL issues found. Include proper error handling, validation, best practices, and comments. Format as a code block.>"
 }
 
-IMPORTANT:
-- codeQuality should reflect ACTUAL code quality (0-100). If code is terrible, score should be LOW (20-40). If code is good, score can be higher (70-90).
-- Be HONEST - don't inflate scores
+IMPORTANT - CRITICAL FOR BENCHMARKS:
+- codeQuality should reflect ACTUAL code quality (0-100). If code is terrible/minimal -> HAVING 3-5 random characters (like "aee" or "ee"), score should be VERY LOW (10-30). If code is good, score can be higher (70-100).
+- industryAverage MUST vary based on ACTUAL code quality and task complexity:
+  * If code is terrible/minimal/nonsense: industryAverage should be LOW (10-25) - most developers would do better
+  * If code is average: industryAverage should be MODERATE (40-70)
+  * If code is good: industryAverage should be HIGHER (95)
+  * For simple tasks, benchmarks are higher; for complex tasks, they're lower
+- topPerformers MUST vary based on ACTUAL code quality and task complexity:
+  * If code is terrible/minimal/nonsense: topPerformers should be MODERATE (10-25) - even top developers have limits
+  * If code is average: topPerformers should be HIGH (45-72)
+  * If code is good: topPerformers should be VERY HIGH (80-98)
+  * DO NOT always return 70 and 90 - these MUST vary significantly based on the actual code submitted
+- These benchmarks MUST reflect how the submitted code compares to industry standards
+- If someone submits nonsense (like "aee"), industryAverage should be HIGHER than their codeQuality (showing most developers do better)
+- If someone submits good code, industryAverage might be LOWER than their codeQuality (showing they're above average)
+- Be HONEST and DYNAMIC - never use the same values for different code
 - correctedCode should be a complete, working, production-ready solution
 - All analysis should be based on the ACTUAL code submitted, not generic responses
 
@@ -502,6 +515,31 @@ Return ONLY the JSON object above. No markdown, no backticks, no explanations.
     } else {
       insights.codeQuality = Math.max(0, Math.min(100, evaluation.score * 10));
     }
+
+    // Validate and clamp industryAverage - ensure it's a number and varies
+    if (typeof insights.industryAverage !== 'number') {
+      // Generate dynamic default based on codeQuality
+      insights.industryAverage = Math.max(50, Math.min(80, insights.codeQuality + 20));
+      console.warn("industryAverage was not a number, generated dynamic default:", insights.industryAverage);
+    } else {
+      insights.industryAverage = Math.max(0, Math.min(100, insights.industryAverage));
+    }
+
+    // Validate and clamp topPerformers - ensure it's a number and varies
+    if (typeof insights.topPerformers !== 'number') {
+      // Generate dynamic default based on codeQuality
+      insights.topPerformers = Math.max(70, Math.min(98, insights.codeQuality + 50));
+      console.warn("topPerformers was not a number, generated dynamic default:", insights.topPerformers);
+    } else {
+      insights.topPerformers = Math.max(0, Math.min(100, insights.topPerformers));
+    }
+
+    // Log benchmarks for debugging
+    console.log("Generated benchmarks:", {
+      codeQuality: insights.codeQuality,
+      industryAverage: insights.industryAverage,
+      topPerformers: insights.topPerformers
+    });
 
     return insights;
   } catch (err) {
