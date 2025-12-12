@@ -5,6 +5,37 @@ if (!GROQ_API_KEY) {
   throw new Error("GROQ_API_KEY environment variable is missing");
 }
 
+/**
+ * Sanitize JSON string by removing backticks, markdown code blocks, and fixing common issues
+ */
+function sanitizeJson(jsonString: string): string {
+  let sanitized = jsonString.trim();
+
+  // Remove markdown code blocks
+  sanitized = sanitized.replace(/```json\s*/gi, "");
+  sanitized = sanitized.replace(/```\s*/g, "");
+  
+  // Remove backticks that might break JSON
+  sanitized = sanitized.replace(/`([^`]*)`/g, (match, content) => {
+    // If it's a code block, escape it properly
+    return JSON.stringify(content);
+  });
+
+  // Fix common issues: code fields with backticks
+  sanitized = sanitized.replace(/"code":\s*`([^`]*)`/g, (_, code) => {
+    return `"code": ${JSON.stringify(code)}`;
+  });
+  
+  sanitized = sanitized.replace(/"correctedCode":\s*`([^`]*)`/g, (_, code) => {
+    return `"correctedCode": ${JSON.stringify(code)}`;
+  });
+
+  // Remove any remaining backticks
+  sanitized = sanitized.replace(/`/g, "");
+
+  return sanitized;
+}
+
 // A small helper to extract the first JSON object from a string, if present
 function extractFirstJson(text: string): string | null {
   const start = text.indexOf("{");
@@ -31,10 +62,28 @@ export interface AIEvaluation {
   improvements: string[];
   feedback: string;
   suggestions: string[];
+  premiumInsights?: {
+    architecture: string;
+    performance: string;
+    security: string;
+    codeQuality: number;
+    industryAverage: number;
+    topPerformers: number;
+    expertRecommendations: {
+      immediate: string[];
+      future: string[];
+    };
+    learningPath: {
+      nextSkills: string[];
+      resources: string[];
+    };
+    correctedCode?: string;
+  };
 }
 
 /**
  * Query Groq models list and pick the best candidate.
+ * Filters out decommissioned models and returns a working model.
  * Returns a model id string or null if none found.
  */
 async function pickFallbackModel(): Promise<string | null> {
@@ -58,18 +107,39 @@ async function pickFallbackModel(): Promise<string | null> {
     json.data = arr;
   }
 
-  // Heuristics: prefer models with 'instant' or 'versatile' or 'llama-3' in name
-  const preferOrder = ["instant", "versatile", "llama-3", "llama-4", "mixtral", "gemma"];
-  const models: string[] = (json.data as any[]).map((m) => m.id || m.model || m.name).filter(Boolean);
+  // Known working models as of Dec 2025
+  const knownWorkingModels = [
+    "llama-3.3-70b-versatile",
+    "llama-3.3-8b-instant",
+    "gemma2-9b-it",
+    "mixtral-8x22b",
+    "llama-3.1-70b-versatile", // Keep as fallback
+    "llama-3.1-8b-instant", // Keep as fallback
+  ];
 
-  // score candidates based on heuristics
-  models.sort((a, b) => {
+  // Get all available models
+  const allModels: string[] = (json.data as any[]).map((m) => m.id || m.model || m.name).filter(Boolean);
+  
+  // Filter to only known working models
+  const workingModels = allModels.filter((m) => 
+    knownWorkingModels.some((known) => m.includes(known) || m === known)
+  );
+
+  if (workingModels.length === 0) {
+    console.warn("No known working models found, trying first available model");
+    return allModels.length > 0 ? allModels[0] : null;
+  }
+
+  // Prefer models in order: llama-3.3 > gemma2 > mixtral > others
+  const preferOrder = ["llama-3.3", "gemma2", "mixtral-8x22b", "llama-3.1", "mixtral"];
+  workingModels.sort((a, b) => {
     const score = (s: string) =>
       preferOrder.reduce((acc, key, idx) => (s.toLowerCase().includes(key) ? acc + (10 - idx) : acc), 0);
     return score(b) - score(a);
   });
 
-  return models.length ? models[0] : null;
+  console.log("Selected fallback model:", workingModels[0]);
+  return workingModels[0];
 }
 
 /**
@@ -138,38 +208,65 @@ export async function evaluateTask(
   }
 
   const prompt = `
-You are an expert code reviewer and technical interviewer. Evaluate the following coding task submission and provide detailed feedback.
+You are a STRICT and RIGOROUS code evaluator. Your job is to be CRITICAL and find ALL issues. You are NOT here to be nice - you are here to evaluate code quality objectively.
 
 TASK TITLE: ${title}
 
 TASK DESCRIPTION: ${description}
 
-${processedCode ? `CODE SUBMITTED:\n${processedCode}` : 'No code was submitted for this task.'}${wasTruncated ? '\n\n⚠️ Note: Code was truncated for evaluation due to length constraints.' : ''}
+${processedCode ? `CODE SUBMITTED:\n\`\`\`${language || 'javascript'}\n${processedCode}\n\`\`\`` : 'No code was submitted for this task.'}${wasTruncated ? '\n\n⚠️ Note: Code was truncated for evaluation due to length constraints.' : ''}
 
 ${language ? `PROGRAMMING LANGUAGE: ${language}` : ''}
 
-Please provide a comprehensive evaluation in the following JSON format:
+EVALUATION CRITERIA (BE STRICT):
+1. Code Quality: Syntax errors, logic errors, edge cases, type safety
+2. Best Practices: Code structure, naming conventions, DRY principle, SOLID principles
+3. Problem Solving: Does it solve the problem correctly? Are there bugs?
+4. Completeness: Are all requirements met? Missing features?
+5. Maintainability: Is code readable? Is it modular? Can it be extended?
+6. Performance: Are there inefficiencies? Unnecessary operations?
+7. Security: Input validation, error handling, potential vulnerabilities
+8. Testing: Are edge cases handled? Error scenarios?
+
+SCORING GUIDELINES (BE STRICT):
+- 1-3: Code has critical bugs, doesn't work, or is completely wrong
+- 4-5: Code works but has major issues, poor structure, missing requirements
+- 6-7: Code works and meets basic requirements but has significant issues or poor practices
+- 8-9: Code is good quality with minor issues or improvements needed
+- 10: Production-ready, excellent code with best practices
+
+IMPORTANT: 
+- If code is minimal (like 3 letters), score should be VERY LOW (1-3)
+- If code has bugs, score should reflect severity
+- If code doesn't follow best practices, deduct points
+- Be HONEST and CRITICAL - don't inflate scores
+
+CRITICAL: Return ONLY valid JSON. Do NOT include:
+- Backticks
+- Markdown code blocks
+- Explanations outside the JSON
+- Any text before or after the JSON object
+
+Please provide a comprehensive evaluation in the following JSON format (return ONLY this JSON, nothing else):
 {
-  "score": <number between 1-10, where 10 is excellent>,
-  "strengths": [<array of strings highlighting what was done well>],
-  "improvements": [<array of strings suggesting areas for improvement>],
-  "feedback": "<overall feedback paragraph>",
-  "suggestions": [<array of specific actionable suggestions>]
+  "score": <number between 1-10, be STRICT and HONEST>,
+  "strengths": [<array of strings - only include if there are actual strengths, be specific>],
+  "improvements": [<array of strings - list ALL issues found, be specific and critical>],
+  "feedback": "<overall feedback paragraph - be direct and critical about issues>",
+  "suggestions": [<array of specific actionable suggestions with code examples if needed>]
 }
 
-Be constructive, specific, and helpful. Consider code quality, best practices, problem-solving approach, and completeness.
+Be CRITICAL, SPECIFIC, and HONEST. Point out every flaw. Don't sugarcoat issues.
 
-
-Do NOT include anything outside the JSON.
+Return ONLY the JSON object above. No markdown, no backticks, no explanations.
 `.trim();
 
-  // Preferred model list to try first
+  // Preferred model list - Updated for Dec 2025 (current working models)
   const preferred = [
-    // pick modern, production-ready names — these are common choices; we will fallback to model listing if needed
-    // "llama-3.1-8b-instant",
-    "llama-3.1-70b-versatile",
-    "mixtral-8x7b-32768",
-    "llama-4-scout-17b-16e-instruct",
+    "llama-3.3-70b-versatile",
+    "llama-3.3-8b-instant",
+    "gemma2-9b-it",
+    "mixtral-8x22b",
   ];
 
   let lastError: any = null;
@@ -230,12 +327,19 @@ Do NOT include anything outside the JSON.
     }
   }
 
+  // Sanitize JSON to remove backticks, markdown, and fix common issues
+  candidate = sanitizeJson(candidate);
+  console.log("Sanitized JSON candidate (first 200 chars):", candidate.substring(0, 200));
+
   let evaluation: AIEvaluation;
   try {
     evaluation = JSON.parse(candidate);
   } catch (err) {
-    console.error("Failed to parse AI output as JSON. Raw output:", rawOutput);
-    throw new Error("Invalid JSON returned from AI");
+    console.error("Failed to parse AI output as JSON after sanitization.");
+    console.error("Sanitized candidate:", candidate.substring(0, 500));
+    console.error("Original raw output (first 500 chars):", rawOutput.substring(0, 500));
+    console.error("Parse error:", err);
+    throw new Error(`Invalid JSON returned from AI: ${(err as Error).message}`);
   }
 
   // Validate structure
@@ -253,7 +357,160 @@ Do NOT include anything outside the JSON.
   // clamp score
   evaluation.score = Math.max(1, Math.min(10, evaluation.score));
 
+  // Generate Premium Insights (AI-generated, not hardcoded)
+  try {
+    console.log("Generating premium insights...");
+    const premiumInsights = await generatePremiumInsights(
+      title,
+      description,
+      processedCode,
+      language,
+      evaluation
+    );
+    evaluation.premiumInsights = premiumInsights;
+  } catch (err) {
+    console.error("Failed to generate premium insights:", err);
+    // Continue without premium insights if generation fails
+  }
+
   return evaluation;
+}
+
+/**
+ * Generate premium insights with corrected code using AI
+ */
+async function generatePremiumInsights(
+  title: string,
+  description: string,
+  codeContent: string,
+  language: string | undefined,
+  evaluation: AIEvaluation
+): Promise<AIEvaluation["premiumInsights"]> {
+  const prompt = `
+You are an expert code reviewer providing premium technical analysis. Analyze the code deeply and provide industry-standard insights.
+
+TASK TITLE: ${title}
+TASK DESCRIPTION: ${description}
+CODE SUBMITTED:
+\`\`\`${language || 'javascript'}
+${codeContent}
+\`\`\`
+
+CURRENT EVALUATION SCORE: ${evaluation.score}/10
+
+Based on the actual code quality, provide a comprehensive premium analysis in the following JSON format:
+{
+  "architecture": "<detailed analysis of code architecture, structure, design patterns used or missing>",
+  "performance": "<analysis of performance implications, time/space complexity, optimizations needed>",
+  "security": "<security analysis including input validation, potential vulnerabilities, best practices>",
+  "codeQuality": <number 0-100 based on ACTUAL code quality - be STRICT. If code is minimal/bad, score should be LOW>,
+  "industryAverage": 72,
+  "topPerformers": 95,
+  "expertRecommendations": {
+    "immediate": [<array of specific immediate improvements needed>],
+    "future": [<array of future enhancements to consider>]
+  },
+  "learningPath": {
+    "nextSkills": [<array of skills to learn next based on code gaps>],
+    "resources": [<array of specific learning resources>]
+  },
+  "correctedCode": "<Provide a FULL, COMPLETE, PRODUCTION-READY corrected version of the code that addresses ALL issues found. Include proper error handling, validation, best practices, and comments. Format as a code block.>"
+}
+
+IMPORTANT:
+- codeQuality should reflect ACTUAL code quality (0-100). If code is terrible, score should be LOW (20-40). If code is good, score can be higher (70-90).
+- Be HONEST - don't inflate scores
+- correctedCode should be a complete, working, production-ready solution
+- All analysis should be based on the ACTUAL code submitted, not generic responses
+
+CRITICAL: Return ONLY valid JSON. Do NOT include:
+- Backticks
+- Markdown code blocks
+- Explanations outside the JSON
+- Any text before or after the JSON object
+
+Return ONLY the JSON object above. No markdown, no backticks, no explanations.
+`.trim();
+
+  // Updated models for Dec 2025 (same as main evaluation)
+  const preferred = [
+    "llama-3.3-70b-versatile",
+    "llama-3.3-8b-instant",
+    "gemma2-9b-it",
+    "mixtral-8x22b",
+  ];
+
+  let rawOutput: string | null = null;
+  let lastError: any = null;
+
+  for (const model of preferred) {
+    try {
+      rawOutput = await callGroqChat(model, prompt);
+      console.info("Premium insights generated with model:", model);
+      break;
+    } catch (err) {
+      console.warn("Premium insights model attempt failed:", model, err);
+      lastError = err;
+    }
+  }
+
+  // Try fallback if preferred models fail
+  if (!rawOutput) {
+    const fallback = await pickFallbackModel();
+    if (fallback) {
+      try {
+        rawOutput = await callGroqChat(fallback, prompt);
+        console.info("Premium insights generated with fallback model:", fallback);
+      } catch (err) {
+        console.error("Premium insights fallback model failed:", fallback, err);
+        lastError = err;
+      }
+    }
+  }
+
+  if (!rawOutput) {
+    console.error("Failed to generate premium insights; lastError:", lastError);
+    throw new Error("Failed to generate premium insights - no working model found");
+  }
+
+  // Parse JSON from response
+  let candidate = rawOutput.trim();
+  if (!candidate.startsWith("{")) {
+    const extracted = extractFirstJson(candidate);
+    if (extracted) {
+      candidate = extracted;
+      console.info("Extracted JSON substring from premium insights output");
+    } else {
+      const mdMatch = candidate.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (mdMatch?.[1]) {
+        candidate = mdMatch[1].trim();
+        console.info("Extracted JSON from markdown code block in premium insights");
+      }
+    }
+  }
+
+  // Sanitize JSON to remove backticks, markdown, and fix common issues
+  candidate = sanitizeJson(candidate);
+  console.log("Sanitized premium insights JSON (first 200 chars):", candidate.substring(0, 200));
+
+  try {
+    const insights = JSON.parse(candidate);
+    
+    // Validate and clamp codeQuality
+    if (typeof insights.codeQuality === 'number') {
+      insights.codeQuality = Math.max(0, Math.min(100, insights.codeQuality));
+    } else {
+      insights.codeQuality = Math.max(0, Math.min(100, evaluation.score * 10));
+    }
+
+    return insights;
+  } catch (err) {
+    console.error("Failed to parse premium insights JSON after sanitization.");
+    console.error("Sanitized candidate (first 500 chars):", candidate.substring(0, 500));
+    console.error("Original raw output (first 500 chars):", rawOutput.substring(0, 500));
+    console.error("Parse error:", err);
+    throw new Error(`Invalid JSON in premium insights: ${(err as Error).message}`);
+  }
 }
 
 

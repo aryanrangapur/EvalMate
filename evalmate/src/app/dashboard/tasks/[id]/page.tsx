@@ -508,8 +508,8 @@ export default function TaskDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* Premium Advanced Analysis */}
-              {isPremium && (
+              {/* Premium Advanced Analysis - AI Generated */}
+              {isPremium && task.ai_evaluation && (task.ai_evaluation as any).premiumInsights && (
                 <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
                   <CardHeader>
                     <CardTitle className="flex items-center text-purple-800">
@@ -521,115 +521,159 @@ export default function TaskDetailPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {/* Code Quality Metrics */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white p-4 rounded-lg border border-purple-200">
-                        <h4 className="font-semibold text-purple-900 mb-2">🏗️ Architecture</h4>
-                        <p className="text-sm text-purple-700">
-                          Well-structured with clear separation of concerns. The code follows SOLID principles effectively.
-                        </p>
-                      </div>
-                      <div className="bg-white p-4 rounded-lg border border-purple-200">
-                        <h4 className="font-semibold text-purple-900 mb-2">⚡ Performance</h4>
-                        <p className="text-sm text-purple-700">
-                          Efficient algorithms with O(n) complexity. Memory usage is optimized for the given constraints.
-                        </p>
-                      </div>
-                      <div className="bg-white p-4 rounded-lg border border-purple-200">
-                        <h4 className="font-semibold text-purple-900 mb-2">🛡️ Security</h4>
-                        <p className="text-sm text-purple-700">
-                          No security vulnerabilities detected. Input validation and error handling are properly implemented.
-                        </p>
-                      </div>
-                    </div>
+                    {(() => {
+                      const insights = (task.ai_evaluation as any).premiumInsights;
+                      const codeQuality = insights.codeQuality || 0;
+                      const industryAvg = insights.industryAverage || 72;
+                      const topPerformers = insights.topPerformers || 95;
 
-                    {/* Industry Benchmarks */}
-                    <div className="bg-white p-6 rounded-lg border border-purple-200">
-                      <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
-                        📊 Industry Benchmarks Comparison
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Your Code Quality</span>
-                          <div className="flex items-center">
-                            <div className="w-32 bg-gray-200 rounded-full h-2 mr-2">
-                              <div className="bg-green-500 h-2 rounded-full" style={{width: '85%'}}></div>
+                      return (
+                        <>
+                          {/* Code Quality Metrics */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white p-4 rounded-lg border border-purple-200">
+                              <h4 className="font-semibold text-purple-900 mb-2">🏗️ Architecture</h4>
+                              <p className="text-sm text-purple-700 whitespace-pre-wrap">
+                                {insights.architecture || 'Analysis not available'}
+                              </p>
                             </div>
-                            <span className="text-sm font-medium">85%</span>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Industry Average</span>
-                          <div className="flex items-center">
-                            <div className="w-32 bg-gray-200 rounded-full h-2 mr-2">
-                              <div className="bg-yellow-400 h-2 rounded-full" style={{width: '72%'}}></div>
+                            <div className="bg-white p-4 rounded-lg border border-purple-200">
+                              <h4 className="font-semibold text-purple-900 mb-2">⚡ Performance</h4>
+                              <p className="text-sm text-purple-700 whitespace-pre-wrap">
+                                {insights.performance || 'Analysis not available'}
+                              </p>
                             </div>
-                            <span className="text-sm font-medium">72%</span>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Top Performers</span>
-                          <div className="flex items-center">
-                            <div className="w-32 bg-gray-200 rounded-full h-2 mr-2">
-                              <div className="bg-purple-500 h-2 rounded-full" style={{width: '95%'}}></div>
+                            <div className="bg-white p-4 rounded-lg border border-purple-200">
+                              <h4 className="font-semibold text-purple-900 mb-2">🛡️ Security</h4>
+                              <p className="text-sm text-purple-700 whitespace-pre-wrap">
+                                {insights.security || 'Analysis not available'}
+                              </p>
                             </div>
-                            <span className="text-sm font-medium">95%</span>
                           </div>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Expert Recommendations */}
-                    <div className="bg-white p-6 rounded-lg border border-purple-200">
-                      <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
-                        👨‍💻 Expert Recommendations
-                      </h4>
-                      <div className="space-y-4">
-                        <div className="border-l-4 border-green-400 pl-4">
-                          <h5 className="font-medium text-green-900">Immediate Improvements</h5>
-                          <ul className="text-sm text-green-800 mt-1 space-y-1">
-                            <li>• Add comprehensive error handling for edge cases</li>
-                            <li>• Implement input sanitization for security</li>
-                            <li>• Add unit tests for critical functions</li>
-                          </ul>
-                        </div>
-                        <div className="border-l-4 border-blue-400 pl-4">
-                          <h5 className="font-medium text-blue-900">Future Enhancements</h5>
-                          <ul className="text-sm text-blue-800 mt-1 space-y-1">
-                            <li>• Consider using TypeScript for better type safety</li>
-                            <li>• Implement caching for better performance</li>
-                            <li>• Add monitoring and logging capabilities</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
+                          {/* Industry Benchmarks */}
+                          <div className="bg-white p-6 rounded-lg border border-purple-200">
+                            <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
+                              📊 Industry Benchmarks Comparison
+                            </h4>
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm">Your Code Quality</span>
+                                <div className="flex items-center">
+                                  <div className="w-32 bg-gray-200 rounded-full h-2 mr-2">
+                                    <div 
+                                      className="bg-green-500 h-2 rounded-full" 
+                                      style={{width: `${codeQuality}%`}}
+                                    ></div>
+                                  </div>
+                                  <span className="text-sm font-medium">{codeQuality}%</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm">Industry Average</span>
+                                <div className="flex items-center">
+                                  <div className="w-32 bg-gray-200 rounded-full h-2 mr-2">
+                                    <div 
+                                      className="bg-yellow-400 h-2 rounded-full" 
+                                      style={{width: `${industryAvg}%`}}
+                                    ></div>
+                                  </div>
+                                  <span className="text-sm font-medium">{industryAvg}%</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm">Top Performers</span>
+                                <div className="flex items-center">
+                                  <div className="w-32 bg-gray-200 rounded-full h-2 mr-2">
+                                    <div 
+                                      className="bg-purple-500 h-2 rounded-full" 
+                                      style={{width: `${topPerformers}%`}}
+                                    ></div>
+                                  </div>
+                                  <span className="text-sm font-medium">{topPerformers}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-                    {/* Learning Path */}
-                    <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-6 rounded-lg border border-purple-300">
-                      <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
-                        🎓 Personalized Learning Path
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <h5 className="font-medium text-purple-800 mb-2">Next Skills to Learn</h5>
-                          <ul className="text-sm text-purple-700 space-y-1">
-                            <li>✓ Advanced Error Handling</li>
-                            <li>○ Design Patterns</li>
-                            <li>○ Testing Frameworks</li>
-                            <li>○ Performance Optimization</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <h5 className="font-medium text-purple-800 mb-2">Recommended Resources</h5>
-                          <ul className="text-sm text-purple-700 space-y-1">
-                            <li>• "Clean Code" by Robert Martin</li>
-                            <li>• JavaScript: The Good Parts</li>
-                            <li>• MDN Web Docs</li>
-                            <li>• freeCodeCamp Advanced Courses</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
+                          {/* Expert Recommendations */}
+                          {insights.expertRecommendations && (
+                            <div className="bg-white p-6 rounded-lg border border-purple-200">
+                              <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
+                                👨‍💻 Expert Recommendations
+                              </h4>
+                              <div className="space-y-4">
+                                {insights.expertRecommendations.immediate && insights.expertRecommendations.immediate.length > 0 && (
+                                  <div className="border-l-4 border-green-400 pl-4">
+                                    <h5 className="font-medium text-green-900">Immediate Improvements</h5>
+                                    <ul className="text-sm text-green-800 mt-1 space-y-1">
+                                      {insights.expertRecommendations.immediate.map((rec: string, idx: number) => (
+                                        <li key={idx}>• {rec}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {insights.expertRecommendations.future && insights.expertRecommendations.future.length > 0 && (
+                                  <div className="border-l-4 border-blue-400 pl-4">
+                                    <h5 className="font-medium text-blue-900">Future Enhancements</h5>
+                                    <ul className="text-sm text-blue-800 mt-1 space-y-1">
+                                      {insights.expertRecommendations.future.map((rec: string, idx: number) => (
+                                        <li key={idx}>• {rec}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Learning Path */}
+                          {insights.learningPath && (
+                            <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-6 rounded-lg border border-purple-300">
+                              <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
+                                🎓 Personalized Learning Path
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {insights.learningPath.nextSkills && insights.learningPath.nextSkills.length > 0 && (
+                                  <div>
+                                    <h5 className="font-medium text-purple-800 mb-2">Next Skills to Learn</h5>
+                                    <ul className="text-sm text-purple-700 space-y-1">
+                                      {insights.learningPath.nextSkills.map((skill: string, idx: number) => (
+                                        <li key={idx}>○ {skill}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {insights.learningPath.resources && insights.learningPath.resources.length > 0 && (
+                                  <div>
+                                    <h5 className="font-medium text-purple-800 mb-2">Recommended Resources</h5>
+                                    <ul className="text-sm text-purple-700 space-y-1">
+                                      {insights.learningPath.resources.map((resource: string, idx: number) => (
+                                        <li key={idx}>• {resource}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Corrected Code */}
+                          {insights.correctedCode && (
+                            <div className="bg-white p-6 rounded-lg border border-purple-200">
+                              <h4 className="font-semibold text-purple-900 mb-4 flex items-center">
+                                💻 Corrected Code (Production-Ready)
+                              </h4>
+                              <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
+                                <pre className="text-sm whitespace-pre-wrap font-mono">
+                                  <code>{insights.correctedCode}</code>
+                                </pre>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               )}
