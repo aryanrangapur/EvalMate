@@ -64,90 +64,80 @@ export default function NewTaskPage() {
       return
     }
 
+    // Validate code content length (GROQ has token limits)
+    const maxCodeLength = 10000 // ~10KB should be safe for most models
+    if (formData.codeContent.trim().length > maxCodeLength) {
+      toast.error(`Code content is too long (${formData.codeContent.length} characters). Maximum allowed: ${maxCodeLength} characters. Please shorten your code or submit in parts.`)
+      return
+    }
+
     setLoading(true)
 
     try {
       console.log('📝 Submitting task for user:', user.id)
-      console.log('👤 User object:', user)
-      console.log('🔐 User authenticated?', !!user)
+      console.log('📊 Payload size:', {
+        title: formData.title.length,
+        description: formData.description.length,
+        code: formData.codeContent.length,
+        total: formData.title.length + formData.description.length + formData.codeContent.length
+      })
 
-      // Check if user profile exists first
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('id, premium_user')
-        .eq('user_id', user.id)
-        .single()
+      // Use API route for large payloads (handles large content better than direct Supabase client)
+      console.log('💾 Inserting task via API route...')
 
-      console.log('👤 User profile check:', { profile, profileError })
+      const response = await fetch('/api/tasks/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          code_content: formData.codeContent.trim(),
+          language: formData.language || null
+        })
+      })
 
-      if (profileError) {
-        console.error('❌ User profile error:', profileError)
-        toast.error('User profile not found. Please try logging out and back in.')
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('❌ API route error:', result)
+        toast.error(result.error || 'Failed to save your task. Please try again.')
         return
       }
 
-      console.log('📋 Task data:', {
-        title: formData.title.trim(),
-        description: formData.description.trim().substring(0, 50) + '...',
-        hasCode: !!formData.codeContent.trim(),
-        language: formData.language
-      })
-
-      // Check if user has a valid session
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-      console.log('🔑 Session check:', { hasSession: !!sessionData.session, sessionError })
-
-      if (!sessionData.session) {
-        console.error('❌ No active session')
-        toast.error('Session expired. Please log in again.')
-        return
+      if (!result.data) {
+        console.error('❌ No data returned from API')
+        throw new Error('No data returned from API')
       }
 
-      // Create the task with a timeout
-      console.log('💾 Inserting task into database...')
-      console.log('📊 Insert data:', {
-        user_id: user.id,
-        title: formData.title.trim(),
-        description_length: formData.description.trim().length,
-        code_length: formData.codeContent.trim().length,
-        language: formData.language
-      })
+      console.log('✅ Task created successfully:', { id: result.data.id, title: result.data.title })
+      console.log('✅ Task submitted successfully:', result.data)
 
-      const { data, error } = await Promise.race([
-        supabase
-          .from('tasks')
-          .insert({
-            user_id: user.id,
-            title: formData.title.trim(),
-            description: formData.description.trim(),
-            code_content: formData.codeContent.trim(),
-            language: formData.language || null,
-            evaluation_status: 'pending'
-          } as any)
-          .select()
-          .single(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database operation timed out after 15 seconds')), 15000)
-        )
-      ]) as any
+      const taskId = result.data.id
 
-      console.log('📥 Database response received:', { hasData: !!data, hasError: !!error })
+      // Trigger AI evaluation asynchronously (don't wait for it to complete)
+      console.log('🤖 Triggering AI evaluation for task:', taskId)
 
-      if (error) {
-        console.error('❌ Database insert failed:', error)
-        throw error
-      }
-
-      if (!data) {
-        console.error('❌ No data returned from insert')
-        throw new Error('No data returned from database insert')
-      }
-
-      console.log('✅ Task created successfully:', { id: (data as any).id, title: (data as any).title })
-      console.log('✅ Task submitted successfully:', data)
+      // Call the Edge Function to start evaluation (fire and forget)
+      supabase.functions
+        .invoke('evaluate-task', {
+          body: { taskId }
+        })
+        .then(({ data: evalData, error: evalError }) => {
+          if (evalError) {
+            console.error('⚠️ Edge Function invocation error:', evalError)
+          } else {
+            console.log('✅ Edge Function invoked successfully:', evalData)
+          }
+        })
+        .catch((err) => {
+          console.error('⚠️ Failed to invoke Edge Function:', err)
+        })
 
       toast.success('Task submitted successfully! AI evaluation will begin shortly.')
-      router.push(`/dashboard/tasks/${(data as any).id}`)
+      router.push(`/dashboard/tasks/${taskId}`)
     } catch (error: any) {
       console.error('❌ Error submitting task:', error)
       console.error('Error type:', typeof error)
@@ -266,3 +256,4 @@ export default function NewTaskPage() {
     </div>
   )
 }
+

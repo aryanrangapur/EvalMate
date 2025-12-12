@@ -107,13 +107,69 @@ serve(async (req) => {
       .update({ evaluation_status: 'processing' })
       .eq('id', taskId)
 
-    // Perform AI evaluation
-    const evaluation = await evaluateTask(
-      task.title,
-      task.description,
-      task.code_content || undefined,
-      task.language || undefined
-    )
+    // Perform AI evaluation with timeout and error handling
+    console.log('Starting AI evaluation for task:', taskId)
+    let evaluation: any = null
+
+    try {
+      const evaluationPromise = evaluateTask(
+        task.title,
+        task.description,
+        task.code_content || undefined,
+        task.language || undefined
+      )
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('AI evaluation timed out after 30 seconds')), 30000)
+      })
+
+      evaluation = await Promise.race([evaluationPromise, timeoutPromise]) as any
+      console.log('AI evaluation completed successfully')
+
+      // Validate that we got a proper evaluation object
+      if (!evaluation || typeof evaluation !== 'object') {
+        throw new Error('AI evaluation returned invalid result')
+      }
+
+      if (!evaluation.score || !evaluation.feedback) {
+        console.warn('AI evaluation missing required fields:', evaluation)
+        throw new Error('AI evaluation missing required fields')
+      }
+
+    } catch (aiError: any) {
+      console.error('❌ AI evaluation failed:', aiError.message)
+
+      // Mark task as failed and store error details
+      const { error: updateError } = await supabaseClient
+        .from('tasks')
+        .update({
+          evaluation_status: 'failed',
+          ai_evaluation: {
+            error: 'AI evaluation failed',
+            details: aiError.message,
+            timestamp: new Date().toISOString()
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', taskId)
+
+      if (updateError) {
+        console.error('Failed to update task status to failed:', updateError)
+      }
+
+      // Return error response
+      return new Response(
+        JSON.stringify({
+          error: 'AI evaluation failed',
+          details: aiError.message,
+          taskId: taskId
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
 
     // Update task with evaluation results
     const { error: updateError } = await supabaseClient

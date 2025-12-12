@@ -126,6 +126,17 @@ export async function evaluateTask(
   codeContent?: string,
   language?: string
 ): Promise<AIEvaluation> {
+  // Truncate code if too long to prevent token limit issues
+  const maxCodeLength = 8000; // Leave room for prompt and response
+  let processedCode = codeContent || '';
+  let wasTruncated = false;
+
+  if (processedCode.length > maxCodeLength) {
+    processedCode = processedCode.substring(0, maxCodeLength) + '\n\n[... Code truncated due to length ...]';
+    wasTruncated = true;
+    console.warn(`Code truncated from ${codeContent?.length || 0} to ${maxCodeLength} characters`);
+  }
+
   const prompt = `
 You are an expert code reviewer and technical interviewer. Evaluate the following coding task submission and provide detailed feedback.
 
@@ -133,7 +144,7 @@ TASK TITLE: ${title}
 
 TASK DESCRIPTION: ${description}
 
-${codeContent ? `CODE SUBMITTED:\n${codeContent}` : 'No code was submitted for this task.'}
+${processedCode ? `CODE SUBMITTED:\n${processedCode}` : 'No code was submitted for this task.'}${wasTruncated ? '\n\n⚠️ Note: Code was truncated for evaluation due to length constraints.' : ''}
 
 ${language ? `PROGRAMMING LANGUAGE: ${language}` : ''}
 
@@ -155,7 +166,7 @@ Do NOT include anything outside the JSON.
   // Preferred model list to try first
   const preferred = [
     // pick modern, production-ready names — these are common choices; we will fallback to model listing if needed
-    "llama-3.1-8b-instant",
+    // "llama-3.1-8b-instant",
     "llama-3.1-70b-versatile",
     "mixtral-8x7b-32768",
     "llama-4-scout-17b-16e-instruct",
