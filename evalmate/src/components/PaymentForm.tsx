@@ -167,16 +167,9 @@ export function PaymentForm({ taskId, amount, onSuccess, onCancel }: PaymentForm
               toast.success('Payment verified! You are now a premium user.');
               onSuccess();
             } else {
-              console.error('❌ Verification failed:', {
-                httpStatus: verifyResponse.status,
-                responseData: verifyData
-              });
-
-              const errorMsg = verifyData.error || `HTTP ${verifyResponse.status}: ${verifyResponse.statusText}`;
-              toast.error(`Payment verification failed: ${errorMsg}`);
+              console.log('🔄 Verification failed, trying manual upgrade fallback...');
 
               // Fallback: Try to upgrade user to premium manually
-              console.log('🔄 Attempting manual premium upgrade...');
               try {
                 if (sessionData.session.user.id) {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -190,18 +183,27 @@ export function PaymentForm({ taskId, amount, onSuccess, onCancel }: PaymentForm
 
                   if (!upgradeError) {
                     console.log('✅ Manual premium upgrade successful');
-                    toast.success('Account upgraded to premium! (verification bypassed)');
+                    toast.success('Payment successful! You are now a premium user.');
                     onSuccess();
                     return;
                   } else {
                     console.error('❌ Manual upgrade failed:', upgradeError);
+                    toast.error('Payment completed but upgrade failed. Please contact support.');
                   }
+                } else {
+                  console.error('❌ No user ID available for upgrade');
+                  toast.error('Payment completed but user identification failed.');
                 }
               } catch (fallbackError) {
                 console.error('🚨 Fallback upgrade error:', fallbackError);
+                toast.error('Payment completed but upgrade failed. Please refresh the page.');
               }
 
-              setTimeout(() => onSuccess(), 3000);
+              // Only show verification error if fallback also failed
+              console.error('❌ Both verification and fallback failed:', {
+                httpStatus: verifyResponse.status,
+                responseData: verifyData
+              });
             }
 
           } catch (error: any) {

@@ -105,6 +105,13 @@ export default function NewTaskPage() {
 
       // Create the task with a timeout
       console.log('💾 Inserting task into database...')
+      console.log('📊 Insert data:', {
+        user_id: user.id,
+        title: formData.title.trim(),
+        description_length: formData.description.trim().length,
+        code_length: formData.codeContent.trim().length,
+        language: formData.language
+      })
 
       const { data, error } = await Promise.race([
         supabase
@@ -120,29 +127,25 @@ export default function NewTaskPage() {
           .select()
           .single(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database operation timed out')), 10000)
+          setTimeout(() => reject(new Error('Database operation timed out after 15 seconds')), 15000)
         )
       ]) as any
 
-      if (error) {
-        console.error('❌ Task creation error:', error)
-        console.error('Error MESSAGE:', error?.message)
-        console.error('Error CODE:', error?.code)
-        console.error('Error DETAILS:', error?.details)
-        console.error('Error HINT:', error?.hint)
+      console.log('📥 Database response received:', { hasData: !!data, hasError: !!error })
 
-        // Handle specific error cases
-        if (error?.code === 'PGRST301') {
-          toast.error('Database permission error. Please try logging out and back in.')
-        } else if (error?.message?.includes('timeout')) {
-          toast.error('Request timed out. Please check your connection and try again.')
-        } else {
-          toast.error(error?.message || 'Failed to create task')
-        }
-        return
+      if (error) {
+        console.error('❌ Database insert failed:', error)
+        throw error
       }
 
+      if (!data) {
+        console.error('❌ No data returned from insert')
+        throw new Error('No data returned from database insert')
+      }
+
+      console.log('✅ Task created successfully:', { id: (data as any).id, title: (data as any).title })
       console.log('✅ Task submitted successfully:', data)
+
       toast.success('Task submitted successfully! AI evaluation will begin shortly.')
       router.push(`/dashboard/tasks/${(data as any).id}`)
     } catch (error: any) {
