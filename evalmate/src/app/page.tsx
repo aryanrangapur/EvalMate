@@ -59,7 +59,7 @@ export default function Home() {
             <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
               Get AI-Powered Feedback on Your
               <span className="text-blue-600"> Coding Tasks</span>
-            </h1>
+          </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
               Submit your coding assignments and receive detailed evaluations, scores, and actionable suggestions
               from advanced AI to improve your programming skills.

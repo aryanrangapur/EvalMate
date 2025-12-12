@@ -21,7 +21,8 @@ import {
   Target,
   Lightbulb,
   Lock,
-  CreditCard
+  CreditCard,
+  Trash2
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -122,6 +123,35 @@ export default function TaskDetailPage() {
       toast.error('Failed to load task')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!task || !user) return
+
+    // Confirm deletion
+    if (!window.confirm(`Are you sure you want to delete "${task.title}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', task.id)
+        .eq('user_id', user.id) // Ensure user can only delete their own tasks
+
+      if (error) {
+        console.error('Error deleting task:', error)
+        toast.error('Failed to delete task')
+        return
+      }
+
+      toast.success('Task deleted successfully')
+      router.push('/dashboard/tasks')
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      toast.error('Failed to delete task')
     }
   }
 
@@ -289,7 +319,17 @@ export default function TaskDetailPage() {
                     </CardDescription>
                   </div>
                 </div>
-                {getStatusBadge(task.evaluation_status)}
+                <div className="flex items-center space-x-2">
+                  {getStatusBadge(task.evaluation_status)}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
