@@ -207,141 +207,28 @@ evalmate/
 #### user_profiles
 Stores extended user information beyond Supabase Auth.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| user_id | UUID | Foreign key to auth.users |
-| full_name | TEXT | User's full name |
-| avatar_url | TEXT | Profile picture URL |
-| credits_balance | INTEGER | Available credits (default: 0) |
-| premium_user | BOOLEAN | Premium status (default: false) |
-| premium_since | TIMESTAMP | Premium upgrade timestamp |
-| created_at | TIMESTAMP | Account creation time |
-| updated_at | TIMESTAMP | Last update time |
 
 #### tasks
 Stores coding task submissions and AI evaluations.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| user_id | UUID | Foreign key to auth.users |
-| title | TEXT | Task title (required) |
-| description | TEXT | Task description (required) |
-| code_content | TEXT | Submitted code |
-| language | TEXT | Programming language |
-| ai_evaluation | JSONB | AI evaluation results |
-| evaluation_status | ENUM | Status: pending/processing/completed/failed |
-| report_unlocked | BOOLEAN | Premium report access (default: false) |
-| created_at | TIMESTAMP | Submission time |
-| updated_at | TIMESTAMP | Last update time |
-
-#### payments
-Tracks payment transactions.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| user_id | UUID | Foreign key to auth.users |
-| task_id | UUID | Foreign key to tasks |
-| stripe_payment_id | TEXT | Razorpay payment ID |
-| amount | INTEGER | Amount in paisa (₹999 = 99900) |
-| currency | TEXT | Currency code (default: 'inr') |
-| status | ENUM | Status: pending/completed/failed/refunded |
-| created_at | TIMESTAMP | Payment creation time |
-| updated_at | TIMESTAMP | Last update time |
 
 ### Security
 All tables use Row Level Security (RLS) to ensure users can only access their own data.
 
-## API Routes
-
-### POST /api/tasks/create
-Creates a new coding task submission.
-
-**Request Body:**
-```json
-{
-  "title": "Task title",
-  "description": "Task description",
-  "code_content": "// Your code here",
-  "language": "javascript"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "uuid",
-  "title": "Task title",
-  "evaluation_status": "pending"
-}
-```
 
 ## Supabase Edge Functions
 
 ### evaluate-task
 Evaluates a coding task using Groq AI.
 
-**Endpoint:** POST `/evaluate-task`
-
-**Request:**
-```json
-{
-  "taskId": "uuid"
-}
-```
-
-**Response:**
-```json
-{
-  "score": 8,
-  "strengths": ["Clean code", "Good naming"],
-  "improvements": ["Add error handling"],
-  "feedback": "Overall well-written code...",
-  "suggestions": ["Consider using async/await"]
-}
-```
 
 ### create-razorpay-order
 Creates a Razorpay payment order for unlocking premium reports.
 
 **Endpoint:** POST `/create-razorpay-order`
 
-**Headers:** `Authorization: Bearer <token>`
-
-**Request:**
-```json
-{
-  "taskId": "uuid"
-}
-```
-
-**Response:**
-```json
-{
-  "orderId": "order_xxx",
-  "amount": 99900,
-  "currency": "INR"
-}
-```
-
 ### verify-razorpay-payment
 Verifies payment and upgrades user to premium.
-
-**Endpoint:** POST `/verify-razorpay-payment`
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Request:**
-```json
-{
-  "razorpay_payment_id": "pay_xxx",
-  "razorpay_order_id": "order_xxx",
-  "razorpay_signature": "signature_xxx",
-  "task_id": "uuid"
-}
-```
 
 ## Available Scripts
 
@@ -515,18 +402,7 @@ supabase secrets set RAZORPAY_KEY_SECRET=your_secret
 - **Edge Functions**: Fast serverless execution near users
 - **Caching**: Implement Redis for frequently accessed data (future enhancement)
 
-## Future Enhancements
 
-- [ ] Real-time collaboration on code submissions
-- [ ] Code comparison with best practices
-- [ ] Integration with GitHub repositories
-- [ ] Support for test case validation
-- [ ] Team/organization accounts
-- [ ] API access for enterprise users
-- [ ] Mobile application (React Native)
-- [ ] Code execution and testing sandbox
-- [ ] Plagiarism detection
-- [ ] Learning path recommendations
 
 ## Contributing
 
@@ -538,23 +414,11 @@ Contributions are welcome! Please follow these steps:
 4. Push to branch: `git push origin feature/your-feature`
 5. Submit a pull request
 
-### Code Style
-
-- Follow existing TypeScript/React patterns
-- Use meaningful variable and function names
-- Add comments for complex logic
-- Run `npm run lint:fix` before committing
-- Ensure `npm test` passes
 
 ## License
 
 This project is private and proprietary. All rights reserved.
 
-## Support
-
-For issues, questions, or feature requests:
-- Create an issue in the GitHub repository
-- Contact: your-email@example.com
 
 ## Acknowledgments
 
@@ -568,3 +432,4 @@ For issues, questions, or feature requests:
 ---
 
 Built with by Aryan Rangapur | © 2025 EvalMate
+
