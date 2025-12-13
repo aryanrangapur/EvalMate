@@ -94,6 +94,8 @@ export interface Database {
           full_name: string | null
           avatar_url: string | null
           credits_balance: number
+          premium_user: boolean
+          premium_since: string | null
         }
         Insert: {
           id?: string
@@ -103,6 +105,8 @@ export interface Database {
           full_name?: string | null
           avatar_url?: string | null
           credits_balance?: number
+          premium_user?: boolean
+          premium_since?: string | null
         }
         Update: {
           id?: string
@@ -112,6 +116,8 @@ export interface Database {
           full_name?: string | null
           avatar_url?: string | null
           credits_balance?: number
+          premium_user?: boolean
+          premium_since?: string | null
         }
       }
     }
