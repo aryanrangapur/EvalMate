@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Navigation } from '@/components/Navigation'
 import { Button } from '@/components/ui/button'
@@ -28,7 +27,6 @@ type UserProfile = Database['public']['Tables']['user_profiles']['Row']
 
 export default function ProfilePage() {
   const { user, loading } = useAuth()
-  const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [fullName, setFullName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
@@ -42,7 +40,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/auth/login')
+      window.location.href = '/auth/login'
       return
     }
 
@@ -50,7 +48,7 @@ export default function ProfilePage() {
       fetchProfile()
       fetchStats()
     }
-  }, [user, loading, router])
+  }, [user, loading])
 
   const fetchProfile = async () => {
     if (!user) return

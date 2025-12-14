@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Navigation } from '@/components/Navigation'
 import { Button } from '@/components/ui/button'
@@ -16,7 +15,6 @@ type Task = Database['public']['Tables']['tasks']['Row']
 
 export default function DashboardPage() {
   const { user, loading } = useAuth()
-  const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
   const [stats, setStats] = useState({
     total: 0,
@@ -27,14 +25,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/auth/login')
+      window.location.href = '/auth/login'
       return
     }
 
     if (user) {
       fetchTasks()
     }
-  }, [user, loading, router])
+  }, [user, loading])
 
   const fetchTasks = async () => {
     if (!user) {

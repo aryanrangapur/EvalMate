@@ -137,17 +137,16 @@ export default function NewTaskPage() {
         })
 
       toast.success('Task submitted successfully! AI evaluation will begin shortly.')
-      router.push(`/dashboard/tasks/${taskId}`)
+
+      // Use window.location for reliable navigation
+      window.location.href = `/dashboard/tasks/${taskId}`
     } catch (error: any) {
       console.error('❌ Error submitting task:', error)
-      console.error('Error type:', typeof error)
-      console.error('Error keys:', Object.keys(error || {}))
-
       const errorMessage = error?.message || 'Failed to submit task'
       toast.error(errorMessage)
-    } finally {
       setLoading(false)
     }
+    // Don't set loading to false on success - we're navigating away
   }
 
   const handleInputChange = (field: string, value: string) => {
